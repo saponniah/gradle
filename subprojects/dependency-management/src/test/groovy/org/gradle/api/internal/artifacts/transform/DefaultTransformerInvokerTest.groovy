@@ -28,6 +28,7 @@ import org.gradle.api.internal.file.TestFiles
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher
 import org.gradle.internal.component.local.model.ComponentFileArtifactIdentifier
+import org.gradle.internal.execution.TestExecutionHistoryStore
 import org.gradle.internal.fingerprint.impl.OutputFileCollectionFingerprinter
 import org.gradle.internal.hash.HashCode
 import org.gradle.internal.service.ServiceRegistry
