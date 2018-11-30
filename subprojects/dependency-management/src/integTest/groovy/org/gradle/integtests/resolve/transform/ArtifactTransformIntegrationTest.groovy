@@ -16,7 +16,9 @@
 
 package org.gradle.integtests.resolve.transform
 
+import org.gradle.api.internal.artifacts.transform.ExecuteScheduledTransformBuildOperationType
 import org.gradle.integtests.fixtures.AbstractHttpDependencyResolutionTest
+import org.gradle.integtests.fixtures.BuildOperationsFixture
 import org.gradle.integtests.fixtures.ExperimentalIncrementalArtifactTransformationsRunner
 import org.junit.runner.RunWith
 import spock.lang.Issue
@@ -1781,8 +1783,9 @@ Found the following transforms:
         output.count("Transforming") == 1
     }
 
+    def "notifies transform listeners and build operation listeners on successful execution"() {
+        def buildOperations = new BuildOperationsFixture(executer, temporaryFolder)
 
-    def "notifies the transform listener on execution"() {
         given:
         buildFile << """                                                                   
             import org.gradle.api.internal.artifacts.transform.ArtifactTransformListener
@@ -1814,7 +1817,7 @@ Found the following transforms:
                 dependencies {
                     compile project(":lib")
                 }
-                ${configurationAndTransform()}
+                ${configurationAndTransform('FileSizer')}
             }
         """
 
@@ -1824,6 +1827,74 @@ Found the following transforms:
         then:
         outputContains("Before transformer FileSizer on artifact lib.jar (project :lib)")
         outputContains("After transformer FileSizer on artifact lib.jar (project :lib)")
+
+        and:
+        with(buildOperations.only(ExecuteScheduledTransformBuildOperationType)) {
+            it.failure == null
+            displayName == "Transform artifact lib.jar (project :lib) with FileSizer"
+            details.displayName == "FileSizer"
+            details.subjectName == "artifact lib.jar (project :lib)"
+        }
+    }
+
+    def "notifies transform listeners and build operation listeners on failed execution"() {
+        def buildOperations = new BuildOperationsFixture(executer, temporaryFolder)
+
+        given:
+        buildFile << """                                                                   
+            import org.gradle.api.internal.artifacts.transform.ArtifactTransformListener
+            import org.gradle.internal.event.ListenerManager
+
+            project.services.get(ListenerManager).addListener(new ArtifactTransformListener() {
+                @Override
+                void beforeTransformerInvocation(Describable transformer, Describable subject) {
+                    println "Before transformer \${transformer.displayName} on \${subject.displayName}"
+                }
+                
+                @Override
+                void afterTransformerInvocation(Describable transformer, Describable subject) {
+                    println "After transformer \${transformer.displayName} on \${subject.displayName}"
+                }
+            })
+
+            project(":lib") {
+                task jar(type: Jar) {
+                    archiveName = 'lib.jar'
+                    destinationDir = buildDir                    
+                }
+                artifacts {
+                    compile jar
+                }
+            }
+            
+            project(":app") {
+                dependencies {
+                    compile project(":lib")
+                }
+                ${configurationAndTransform('ToNullTransform')}
+            }
+
+            class ToNullTransform extends ArtifactTransform {
+                List<File> transform(File input) {
+                    return null
+                }
+            }
+        """
+
+        when:
+        fails "app:resolve"
+
+        then:
+        outputContains("Before transformer ToNullTransform on artifact lib.jar (project :lib)")
+        outputContains("After transformer ToNullTransform on artifact lib.jar (project :lib)")
+
+        and:
+        with(buildOperations.only(ExecuteScheduledTransformBuildOperationType)) {
+            it.failure.contains("TransformationException")
+            displayName == "Transform artifact lib.jar (project :lib) with ToNullTransform"
+            details.displayName == "ToNullTransform"
+            details.subjectName == "artifact lib.jar (project :lib)"
+        }
     }
 
     @Issue("https://github.com/gradle/gradle/issues/6156")
