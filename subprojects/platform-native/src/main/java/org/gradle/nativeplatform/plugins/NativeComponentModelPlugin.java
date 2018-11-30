@@ -130,8 +130,8 @@ public class NativeComponentModelPlugin implements Plugin<ProjectInternal> {
     public void apply(final ProjectInternal project) {
         project.getPluginManager().apply(ComponentModelBasePlugin.class);
 
-        project.getExtensions().create(BuildTypeContainer.class, "buildTypes", DefaultBuildTypeContainer.class, instantiator);
-        project.getExtensions().create(FlavorContainer.class, "flavors", DefaultFlavorContainer.class, instantiator);
+        project.getExtensions().create(BuildTypeContainer.class, "buildTypes", DefaultBuildTypeContainer.class, instantiator, collectionCallbackActionDecorator);
+        project.getExtensions().create(FlavorContainer.class, "flavors", DefaultFlavorContainer.class, instantiator, collectionCallbackActionDecorator);
         project.getExtensions().create(NativeToolChainRegistry.class, "toolChains", DefaultNativeToolChainRegistry.class, instantiator, collectionCallbackActionDecorator);
     }
 
@@ -430,7 +430,7 @@ public class NativeComponentModelPlugin implements Plugin<ProjectInternal> {
             super(ArtifactRepository.class, instantiator, new ArtifactRepositoryNamer(), collectionCallbackActionDecorator);
             registerFactory(PrebuiltLibraries.class, new NamedDomainObjectFactory<PrebuiltLibraries>() {
                 public PrebuiltLibraries create(String name) {
-                    return instantiator.newInstance(DefaultPrebuiltLibraries.class, name, instantiator, objectFactory, binaryFactory);
+                    return instantiator.newInstance(DefaultPrebuiltLibraries.class, name, instantiator, objectFactory, binaryFactory, collectionCallbackActionDecorator);
                 }
             });
         }

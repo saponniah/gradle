@@ -122,8 +122,8 @@ public class ComponentModelBasePlugin implements Plugin<Project> {
         }
 
         @Hidden @Model
-        LanguageTransformContainer languageTransforms() {
-            return new DefaultLanguageTransformContainer();
+        LanguageTransformContainer languageTransforms(CollectionCallbackActionDecorator collectionCallbackActionDecorator) {
+            return new DefaultLanguageTransformContainer(collectionCallbackActionDecorator);
         }
 
         // Finalizing here, as we need this to run after any 'assembling' task (jar, link, etc) is created.
