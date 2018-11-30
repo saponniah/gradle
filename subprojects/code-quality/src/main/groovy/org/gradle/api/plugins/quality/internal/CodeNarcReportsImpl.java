@@ -17,6 +17,7 @@
 package org.gradle.api.plugins.quality.internal;
 
 import org.gradle.api.Task;
+import org.gradle.api.internal.CollectionCallbackActionDecorator;
 import org.gradle.api.plugins.quality.CodeNarcReports;
 import org.gradle.api.reporting.SingleFileReport;
 import org.gradle.api.reporting.internal.TaskGeneratedSingleFileReport;
@@ -26,8 +27,8 @@ import javax.inject.Inject;
 
 public class CodeNarcReportsImpl extends TaskReportContainer<SingleFileReport> implements CodeNarcReports {
     @Inject
-    public CodeNarcReportsImpl(Task task) {
-        super(SingleFileReport.class, task);
+    public CodeNarcReportsImpl(Task task, CollectionCallbackActionDecorator callbackActionDecorator) {
+        super(SingleFileReport.class, task, callbackActionDecorator);
 
         add(TaskGeneratedSingleFileReport.class, "xml", task);
         add(TaskGeneratedSingleFileReport.class, "html", task);

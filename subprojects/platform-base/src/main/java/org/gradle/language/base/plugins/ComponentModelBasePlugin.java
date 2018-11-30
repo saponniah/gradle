@@ -23,6 +23,7 @@ import org.gradle.api.Incubating;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.internal.CollectionCallbackActionDecorator;
 import org.gradle.api.internal.project.ProjectIdentifier;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.project.ProjectRegistry;
@@ -145,8 +146,8 @@ public class ComponentModelBasePlugin implements Plugin<Project> {
         }
 
         @Model
-        PlatformContainer platforms(Instantiator instantiator) {
-            return instantiator.newInstance(DefaultPlatformContainer.class, instantiator);
+        PlatformContainer platforms(Instantiator instantiator, CollectionCallbackActionDecorator collectionCallbackActionDecorator) {
+            return instantiator.newInstance(DefaultPlatformContainer.class, instantiator, collectionCallbackActionDecorator);
         }
 
         @Hidden @Model

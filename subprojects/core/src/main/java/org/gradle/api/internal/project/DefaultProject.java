@@ -45,6 +45,7 @@ import org.gradle.api.file.DeleteSpec;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.initialization.dsl.ScriptHandler;
+import org.gradle.api.internal.CollectionCallbackActionDecorator;
 import org.gradle.api.internal.DynamicObjectAware;
 import org.gradle.api.internal.DynamicPropertyNamer;
 import org.gradle.api.internal.ExtensibleDynamicObject;
@@ -266,6 +267,11 @@ public class DefaultProject extends AbstractPluginAware implements ProjectIntern
         @Hidden @Model
         NamedEntityInstantiator<Task> taskFactory(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(TaskInstantiator.class);
+        }
+
+        @Hidden @Model
+        CollectionCallbackActionDecorator collectionCallbackActionDecorator(ServiceRegistry serviceRegistry) {
+            return serviceRegistry.get(CollectionCallbackActionDecorator.class);
         }
 
         @Hidden @Model
