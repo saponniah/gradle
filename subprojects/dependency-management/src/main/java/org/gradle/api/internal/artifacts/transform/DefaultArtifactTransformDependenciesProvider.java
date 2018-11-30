@@ -35,6 +35,13 @@ import org.gradle.internal.fingerprint.FileCollectionFingerprinter;
 import java.io.File;
 import java.util.Set;
 
+/**
+ * Companion object of a {@link TransformationNode} that knows how to compute the artifacts of the dependencies
+ * of the artifact undergoing transformation by producing an {@link ArtifactTransformDependenciesInternal}.
+ *
+ * The implementation is not thread-safe, designed to work with a single {@link Transformation}
+ * and thus should not be shared beyond the members of a chain.
+ */
 class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformDependenciesProvider {
 
     private static final ArtifactTransformDependenciesInternal EMPTY_DEPENDENCIES = new ArtifactTransformDependenciesInternal() {
@@ -58,6 +65,7 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
 
     private final ComponentArtifactIdentifier artifactId;
     private final ResolvableDependencies resolvableDependencies;
+    private ImmutableSet<ComponentIdentifier> dependenciesIdentifiers;
 
     DefaultArtifactTransformDependenciesProvider(ComponentArtifactIdentifier artifactId, ResolvableDependencies resolvableDependencies) {
         this.artifactId = artifactId;
@@ -72,12 +80,8 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
 
     @Override
     public ArtifactTransformDependenciesInternal forAttributes(ImmutableAttributes attributes) {
-        ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
-        Set<ComponentIdentifier> dependenciesIdentifiers = Sets.newHashSet();
-        for (ResolvedComponentResult component : resolutionResult.getAllComponents()) {
-            if (component.getId().equals(artifactId.getComponentIdentifier())) {
-                getDependenciesIdentifiers(dependenciesIdentifiers, component.getDependencies());
-            }
+        if (dependenciesIdentifiers == null) {
+            dependenciesIdentifiers = initializeDependencyIdentifiers();
         }
         FileCollection files = resolvableDependencies.artifactView(conf -> {
             conf.componentFilter(element -> {
@@ -98,6 +102,18 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
         }
 
         return new DefaultArtifactTransformDependencies(files);
+    }
+
+    private ImmutableSet<ComponentIdentifier> initializeDependencyIdentifiers() {
+        ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
+        Set<ComponentIdentifier> result = Sets.newHashSet();
+        for (ResolvedComponentResult component : resolutionResult.getAllComponents()) {
+            if (component.getId().equals(artifactId.getComponentIdentifier())) {
+                getDependenciesIdentifiers(result, component.getDependencies());
+                break;
+            }
+        }
+        return ImmutableSet.copyOf(result);
     }
 
     private static void getDependenciesIdentifiers(Set<ComponentIdentifier> dependenciesIdentifiers, Set<? extends DependencyResult> dependencies) {
