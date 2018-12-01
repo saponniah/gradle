@@ -58,7 +58,7 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
 
     static final ArtifactTransformDependenciesProvider EMPTY = new ArtifactTransformDependenciesProvider() {
         @Override
-        public ArtifactTransformDependenciesInternal forAttributes(ImmutableAttributes attributes) {
+        public ArtifactTransformDependenciesInternal forTransformer(Transformer transformer) {
             return EMPTY_DEPENDENCIES;
         }
     };
@@ -72,14 +72,17 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
         this.resolvableDependencies = resolvableDependencies;
     }
 
-    public static ArtifactTransformDependenciesProvider create(boolean requiresDependencies, ComponentArtifactIdentifier artifactId, ResolvableDependencies resolvableDependencies) {
-        return requiresDependencies
-            ? new DefaultArtifactTransformDependenciesProvider(artifactId, resolvableDependencies)
-            : EMPTY;
+    public static ArtifactTransformDependenciesProvider create(ComponentArtifactIdentifier artifactId, ResolvableDependencies resolvableDependencies) {
+        return new DefaultArtifactTransformDependenciesProvider(artifactId, resolvableDependencies);
     }
 
     @Override
-    public ArtifactTransformDependenciesInternal forAttributes(ImmutableAttributes attributes) {
+    public ArtifactTransformDependenciesInternal forTransformer(Transformer transformer) {
+        if (!transformer.requiresDependencies()) {
+            return EMPTY_DEPENDENCIES;
+        }
+
+        ImmutableAttributes fromAttributes = transformer.getFromAttributes();
         if (dependenciesIdentifiers == null) {
             dependenciesIdentifiers = initializeDependencyIdentifiers();
         }
@@ -87,10 +90,10 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
             conf.componentFilter(element -> {
                 return dependenciesIdentifiers.contains(element);
             });
-            if (!attributes.isEmpty()) {
+            if (!fromAttributes.isEmpty()) {
                 conf.attributes(container -> {
-                    for (Attribute<?> attribute : attributes.keySet()) {
-                        copyAttribute(attributes, container, attribute);
+                    for (Attribute<?> attribute : fromAttributes.keySet()) {
+                        copyAttribute(fromAttributes, container, attribute);
                     }
                 });
             }
