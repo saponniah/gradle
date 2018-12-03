@@ -19,7 +19,6 @@ package org.gradle.api.internal.artifacts.transform;
 import com.google.common.collect.ImmutableCollection;
 import org.gradle.api.Action;
 import org.gradle.api.Task;
-import org.gradle.api.artifacts.ResolvableDependencies;
 import org.gradle.api.artifacts.ResolveException;
 import org.gradle.api.internal.artifacts.ivyservice.DefaultLenientConfiguration;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvableArtifact;
@@ -47,8 +46,8 @@ public abstract class TransformationNode extends Node {
         return new ChainedTransformationNode(current, previous);
     }
 
-    public static TransformationNode initial(TransformationStep initial, ResolvableArtifact artifact, ResolvableDependencies resolvableDependencies, ExecutionGraphDependenciesResolver executionGraphDependenciesResolver) {
-        return new InitialTransformationNode(initial, artifact, resolvableDependencies, executionGraphDependenciesResolver);
+    public static TransformationNode initial(TransformationStep initial, ResolvableArtifact artifact, ArtifactTransformDependenciesProvider dependenciesProvider, ExecutionGraphDependenciesResolver executionGraphDependenciesResolver) {
+        return new InitialTransformationNode(initial, artifact, dependenciesProvider, executionGraphDependenciesResolver);
     }
 
     protected TransformationNode(TransformationStep transformationStep) {
@@ -114,14 +113,13 @@ public abstract class TransformationNode extends Node {
 
     private static class InitialTransformationNode extends TransformationNode {
         private final ResolvableArtifact artifact;
+        private final ArtifactTransformDependenciesProvider dependenciesProvider;
         private final ExecutionGraphDependenciesResolver executionGraphDependenciesResolver;
-        private final ResolvableDependencies resolvableDependencies;
-        private ArtifactTransformDependenciesProvider dependenciesProvider;
 
-        public InitialTransformationNode(TransformationStep transformationStep, ResolvableArtifact artifact, ResolvableDependencies resolvableDependencies, ExecutionGraphDependenciesResolver executionGraphDependenciesResolver) {
+        public InitialTransformationNode(TransformationStep transformationStep, ResolvableArtifact artifact, ArtifactTransformDependenciesProvider dependenciesProvider, ExecutionGraphDependenciesResolver executionGraphDependenciesResolver) {
             super(transformationStep);
             this.artifact = artifact;
-            this.resolvableDependencies = resolvableDependencies;
+            this.dependenciesProvider = dependenciesProvider;
             this.executionGraphDependenciesResolver = executionGraphDependenciesResolver;
         }
 
@@ -139,9 +137,6 @@ public abstract class TransformationNode extends Node {
 
         @Override
         protected ArtifactTransformDependenciesProvider getDependenciesProvider() {
-            if (dependenciesProvider == null) {
-                throw new IllegalStateException("Initial transformation hasn't been executed yet");
-            }
             return dependenciesProvider;
         }
 
@@ -178,9 +173,7 @@ public abstract class TransformationNode extends Node {
                     return;
                 }
 
-                dependenciesProvider = DefaultArtifactTransformDependenciesProvider.create(transformationStep, artifact.getId(), resolvableDependencies);
                 TransformationSubject initialArtifactTransformationSubject = TransformationSubject.initial(artifact.getId(), file);
-
                 this.transformedSubject = transformationStep.transform(initialArtifactTransformationSubject, dependenciesProvider);
             }
 

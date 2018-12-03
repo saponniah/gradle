@@ -19,7 +19,6 @@ package org.gradle.api.internal.artifacts.transform;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.gradle.api.artifacts.ResolvableDependencies;
-import org.gradle.api.artifacts.component.ComponentArtifactIdentifier;
 import org.gradle.api.artifacts.component.ComponentIdentifier;
 import org.gradle.api.artifacts.result.DependencyResult;
 import org.gradle.api.artifacts.result.ResolutionResult;
@@ -50,29 +49,21 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
         }
     };
 
-    static final ArtifactTransformDependenciesProvider EMPTY = new ArtifactTransformDependenciesProvider() {
-        @Override
-        public ArtifactTransformDependenciesInternal forAttributes(ImmutableAttributes attributes) {
-            return EMPTY_DEPENDENCIES;
-        }
-    };
-
-    private final ComponentArtifactIdentifier artifactId;
+    private final ComponentIdentifier componentIdentifier;
     private final ResolvableDependencies resolvableDependencies;
 
-    DefaultArtifactTransformDependenciesProvider(ComponentArtifactIdentifier artifactId, ResolvableDependencies resolvableDependencies) {
-        this.artifactId = artifactId;
+    DefaultArtifactTransformDependenciesProvider(ComponentIdentifier componentIdentifier, ResolvableDependencies resolvableDependencies) {
+        this.componentIdentifier = componentIdentifier;
         this.resolvableDependencies = resolvableDependencies;
     }
 
-    public static ArtifactTransformDependenciesProvider create(Transformation transformation, ComponentArtifactIdentifier artifactId, ResolvableDependencies resolvableDependencies) {
-        return transformation.requiresDependencies()
-            ? new DefaultArtifactTransformDependenciesProvider(artifactId, resolvableDependencies)
-            : EMPTY;
-    }
-
     @Override
-    public ArtifactTransformDependenciesInternal forAttributes(ImmutableAttributes attributes) {
+    public ArtifactTransformDependenciesInternal forTransform(Transformer transformer) {
+        if (!transformer.requiresDependencies()) {
+            return EMPTY_DEPENDENCIES;
+        }
+
+        ImmutableAttributes attributes = transformer.getFromAttributes();
         return DeprecationLogger.whileDisabled(() -> {
             // Temporarily ignore deprecation warning while triggering the artifact resolution
             // This is unsafe as some other thread may be using the projects state.
@@ -80,7 +71,7 @@ class DefaultArtifactTransformDependenciesProvider implements ArtifactTransformD
             Set<ComponentIdentifier> dependenciesIdentifiers = Sets.newHashSet();
             ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
             for (ResolvedComponentResult component : resolutionResult.getAllComponents()) {
-                if (component.getId().equals(artifactId.getComponentIdentifier())) {
+                if (component.getId().equals(componentIdentifier)) {
                     getDependenciesIdentifiers(dependenciesIdentifiers, component.getDependencies());
                 }
             }
